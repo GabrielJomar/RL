@@ -1,0 +1,49 @@
+import numpy as np
+import pandas as pd
+import random
+
+class MovieRecommenderRL:
+    def __init__(self, movies, users, n_movies, n_users, gamma=0.9, alpha=0.1, epsilon=0.1):
+        self.movies = movies
+        self.users = users
+        self.n_movies = n_movies
+        self.n_users = n_users
+        self.q_table = np.zeros((n_users, n_movies))
+        self.gamma = gamma
+        self.alpha = alpha
+        self.epsilon = epsilon
+
+    def recommend_movie(self, user_id):
+        if random.uniform(0, 1) < self.epsilon:
+            return random.randint(0, self.n_movies - 1)
+        return np.argmax(self.q_table[user_id])
+
+    def update_q_value(self, user_id, movie_id, reward, next_movie_id):
+        max_future_q = np.max(self.q_table[user_id, next_movie_id])
+        current_q = self.q_table[user_id, movie_id]
+        new_q = (1 - self.alpha) * current_q + self.alpha * (reward + self.gamma * max_future_q)
+        self.q_table[user_id, movie_id] = new_q
+
+    def train(self, interactions, episodes=1000):
+        for episode in range(episodes):
+            for user_id, movie_id, reward in interactions:
+                next_movie_id = self.recommend_movie(user_id)
+                self.update_q_value(user_id, movie_id, reward, next_movie_id)
+
+def simulate_interactions(users, movies, n_interactions=10000):
+    interactions = []
+    for _ in range(n_interactions):
+        user_id = random.choice(users)
+        movie_id = random.choice(movies)
+        reward = random.choice([0, 1])
+        interactions.append((user_id, movie_id, reward))
+    return interactions
+
+movies = list(range(100))
+users = list(range(10))
+recommender = MovieRecommenderRL(movies, users, len(movies), len(users))
+interactions = simulate_interactions(users, movies)
+recommender.train(interactions)
+
+for user in users:
+    print(f"Recommendations for user {user}: {recommender.recommend_movie(user)}")
